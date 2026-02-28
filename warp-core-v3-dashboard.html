@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warp-Core v3 | Performance Dashboard</title>
+    <style>
+        :root {
+            --neon-cyan: #00f2ff;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: radial-gradient(circle at center, #1a1a2e 0%, #0f0f1a 100%);
+            color: white;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .dashboard {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 40px;
+            width: 90%;
+            max-width: 800px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            letter-spacing: 2px;
+            background: linear-gradient(to right, #fff, var(--neon-cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p { color: #888; margin-top: 10px; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            padding: 20px;
+            border-radius: 16px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover { transform: translateY(-5px); border-color: var(--neon-cyan); }
+
+        .stat-label { font-size: 0.8rem; color: #aaa; text-transform: uppercase; margin-bottom: 10px; }
+        .stat-value { font-size: 1.8rem; font-weight: bold; color: var(--neon-cyan); }
+        .stat-unit { font-size: 0.9rem; color: #666; margin-left: 4px; }
+
+        .controls { text-align: center; }
+
+        #run-btn {
+            background: var(--neon-cyan);
+            color: #000;
+            border: none;
+            padding: 16px 48px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.3);
+        }
+
+        #run-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(0, 242, 255, 0.5);
+        }
+
+        #run-btn:disabled { background: #444; color: #888; cursor: not-allowed; box-shadow: none; }
+
+        .status { margin-top: 20px; font-size: 0.9rem; color: #666; }
+    </style>
+</head>
+<body>
+
+<div class="dashboard">
+    <div class="header">
+        <h1>WARP-CORE <span style="font-weight: 200;">v3.0</span></h1>
+        <p>Tiled INT4 GEMM + RMSNorm WebGPU Accelerator</p>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">GPU Latency</div>
+            <div class="stat-value" id="latency">--</div>
+            <div class="stat-unit">ms</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Throughput</div>
+            <div class="stat-value" id="tflops">--</div>
+            <div class="stat-unit">TFLOPS</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Dimensions</div>
+            <div class="stat-value">4096</div>
+            <div class="stat-unit">x4096</div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button id="run-btn">INITIALIZE BENCHMARK</button>
+        <div class="status" id="status">Ready for hardware injection...</div>
+    </div>
+</div>
+
+<script type="module">
+    import { runBenchmark } from "./warp-core-benchmark.js";
+    
+    const btn = document.getElementById("run-btn");
+    const status = document.getElementById("status");
+    const latencyEl = document.getElementById("latency");
+    const tflopsEl = document.getElementById("tflops");
+
+    btn.onclick = async () => {
+        btn.disabled = true;
+        status.innerText = "Running GPU compute passes...";
+        
+        try {
+            const results = await runBenchmark();
+            
+            if (results) {
+                latencyEl.innerText = results.latency.toFixed(2);
+                tflopsEl.innerText = results.tflops.toFixed(2);
+                status.innerText = "Benchmark complete. Performance verified.";
+            }
+        } catch (e) {
+            status.innerText = "Error: Hardware doesn't support timestamp-query.";
+            console.error(e);
+        } finally {
+            btn.disabled = false;
+        }
+    };
+</script>
+
+</body>
+</html>
